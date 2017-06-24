@@ -139,6 +139,10 @@ SE_JRUBY=1 LS_HEAP_SIZE=64m /opt/logstash-5.4.2/bin/logstash -f /opt/logstash-5.
 
 ##### KIBANA:
 
+cd ~/elastic
+tar xvzf kibana-5.4.2-linux-x86_64.tar.gz
+mv kibana-5.4.2-linux-x86_64 /opt/kibana
+
 root@raspiweb:/opt/kibana# more config/kibana.yml  | grep -v ^#
 server.host: "127.0.0.1"
 elasticsearch.url: http://127.0.0.1:9200
