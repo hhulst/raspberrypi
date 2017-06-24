@@ -147,12 +147,16 @@ root@raspiweb:/opt/kibana# more config/kibana.yml  | grep -v ^#
 server.host: "127.0.0.1"
 elasticsearch.url: http://127.0.0.1:9200
 
-sudo wget http://node-arm.herokuapp.com/node_latest_armhf.deb
-sudo dpkg -i node_latest_armhf.deb
-sudo mv /opt/kibana/node/bin/node /opt/kibana/node/bin/node.orig
-sudo mv /opt/kibana/node/bin/npm /opt/kibana/node/bin/npm.orig
-sudo ln -s /usr/local/bin/node /opt/kibana/node/bin/node
-sudo ln -s /usr/local/bin/npm /opt/kibana/node/bin/npm
+// sudo wget http://node-arm.herokuapp.com/node_latest_armhf.deb
+// sudo dpkg -i node_latest_armhf.deb
+// sudo mv /opt/kibana/node/bin/node /opt/kibana/node/bin/node.orig
+// sudo mv /opt/kibana/node/bin/npm /opt/kibana/node/bin/npm.orig
+// sudo ln -s /usr/local/bin/node /opt/kibana/node/bin/node
+// sudo ln -s /usr/local/bin/npm /opt/kibana/node/bin/npm
+
+curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+sudo apt install nodejs
+sudo ln -s /etc/alternatives/node /opt/kibana/node/bin/node
 
 
 
