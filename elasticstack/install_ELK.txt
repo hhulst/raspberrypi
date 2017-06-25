@@ -1,0 +1,163 @@
+INSTALLATION ElasticSearch - Logstash - Kibana (ELK) on raspberrypi. 
+
+Look for the newest packages at:
+https://www.elastic.co/downloads/kibana
+https://www.elastic.co/downloads/elasticsearch
+https://www.elastic.co/downloads/logstash
+
+
+Install on client side:
+
+##### FILEBEAT 
+
+wget https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-5.4.2-linux-x86_64.tar.gz
+
+See procedure:
+http://ict.renevdmark.nl/2016/07/05/elastic-beats-on-raspberry-pi/
+But use logstash as output in the yml file instead of direct connecting to elasticsearch:
+
+output:
+  logstash:
+    hosts: ["192.168.178.7:5044"]
+    index: "filebeat"
+
+
+Install on server side:
+java8, logstash, elasticsearch and Kibana.
+
+sudo apt-get install oracle-java8-jdk
+
+wget https://artifacts.elastic.co/downloads/logstash/logstash-5.4.2.tar.gz
+wget https://artifacts.elastic.co/downloads/kibana/kibana-4.6.9-linux-x86_64.tar.gz
+
+
+##### ELASTICSEARCH
+
+sudo useradd -d "/usr/local/share/elasticsearch" -M -s /bin/bash -U "elasticsearch"
+# Bump max open files for the user
+sudo sh -c "echo 'elasticsearch soft nofile 32000' >> /etc/security/limits.conf"
+sudo sh -c "echo 'elasticsearch hard nofile 32000' >> /etc/security/limits.conf"
+
+mkdir /usr/local/share/elasticsearch
+chmod 777 /usr/local/share/elasticsearch
+wget https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz
+cp /root/elastic/elasticsearch-2.4.5.tar.gz /usr/local/share/elasticsearch/
+sysctl vm.max_map_count
+vm.max_map_count = 65530
+sysctl vm.max_map_count=262144
+vm.max_map_count = 262144
+
+su - elasticsearch
+tar -xvf elasticsearch-2.4.5.tar.gz
+mv elasticsearch-2.4.5/* .
+
+cd /usr/local/share/elasticsearch/config/
+modify elasticsearch.yml:
+cluster.name: (Whatever name you want)
+network.host: 127.0.0.1
+http.port: 9200
+
+ES_JAVA_OPTS="-Xms256m -Xmx512m" ./bin/elasticsearch
+ 
+ curl http://127.0.0.1:9200
+{
+  "name" : "Ajax",
+  "cluster_name" : "elasticsearch",
+  "cluster_uuid" : "Fq-_IOYTSG6uLfgxrnzC1Q",
+  "version" : {
+    "number" : "2.4.5",
+    "build_hash" : "c849dd13904f53e63e88efc33b2ceeda0b6a1276",
+    "build_timestamp" : "2017-04-24T16:18:17Z",
+    "build_snapshot" : false,
+    "lucene_version" : "5.5.4"
+  },
+  "tagline" : "You Know, for Search"
+
+
+Kill (CTRL-C) the elasticsearch binary.
+
+
+
+##### LOGSTASH:
+
+cd ~/elastic
+tar xvzf logstash-5.4.2.tar.gz
+mv logstash-5.4.2 /opt/logstash-5.4.2
+mkdir -p /etc/logstash/conf.d
+vi /opt/logstash-5.4.2/config/logstash.yml
+http.host: "192.168.178.8"
+
+USE_JRUBY=1 LS_HEAP_SIZE=64m /opt/logstash-5.4.2/bin/logstash -f /opt/logstash-5.4.2/config/logstash.yml
+
+java.lang.UnsatisfiedLinkError: /opt/logstash-5.4.2/vendor/jruby/lib/jni/arm-Linux/libjffi-1.2.so: /opt/logstash-5.4.2/vendor/jruby/lib/jni/arm-Linux/libjffi-1.2.so: cannot open shared object file: No such file or directory
+
+apt-get update
+apt-get install git
+
+cd ~/ elastic
+git clone https://github.com/jnr/jffi.git
+cd jffi/
+apt-get install -y ant
+ant jar
+
+mv /opt/logstash-5.4.2/vendor/jruby/lib/jni/arm-Linux/libjffi-1.2.so /opt/logstash-5.4.2/vendor/jruby/lib/jni/arm-Linux/libjffi-1.2.so.org
+
+cp build/jni/libjffi-1.2.so /opt/logstash-5.4.2/vendor/jruby/lib/jni/arm-Linux/libjffi-1.2.so
+
+apt-get install zip
+zip -g jruby.jar jni/arm-Linux/libjffi-1.2.so
+updating: jni/arm-Linux/libjffi-1.2.so
+        zip warning: Local Entry CRC does not match CD: jni/arm-Linux/libjffi-1.2.so
+ (deflated 62%)
+
+
+
+root@elasticpi:/opt/logstash-5.4.2/config# more /opt/logstash-5.4.2/config/logstash.conf
+input {
+        beats {
+                port => 5044
+        }
+}
+
+filter {
+  grok {
+    match => { "message" => "%{COMBINEDAPACHELOG}" }
+  }
+  date {
+    match => [ "timestamp" , "dd/MMM/yyyy:HH:mm:ss Z" ]
+  }
+}
+
+output {
+  elasticsearch {
+        hosts => ["127.0.0.1:9200"]
+  }
+}
+
+SE_JRUBY=1 LS_HEAP_SIZE=64m /opt/logstash-5.4.2/bin/logstash -f /opt/logstash-5.4.2/config/logstash.conf
+
+
+##### KIBANA:
+
+cd ~/elastic
+tar xvzf kibana-4.6.4-linux-x86_64.tar.gz
+mv kibana-4.6.4-linux-x86_64 /opt/kibana
+
+root@raspiweb:/opt/kibana# more config/kibana.yml  | grep -v ^#
+server.host: "127.0.0.1"
+elasticsearch.url: http://127.0.0.1:9200
+
+sudo wget http://node-arm.herokuapp.com/node_latest_armhf.deb
+sudo dpkg -i node_latest_armhf.deb
+sudo mv /opt/kibana/node/bin/node /opt/kibana/node/bin/node.orig
+sudo mv /opt/kibana/node/bin/npm /opt/kibana/node/bin/npm.orig
+sudo ln -s /usr/local/bin/node /opt/kibana/node/bin/node
+sudo ln -s /usr/local/bin/npm /opt/kibana/node/bin/npm
+
+vi /opt/kibana/bin/kibana
+# exec "${NODE}" $NODE_OPTIONS --no-warnings "${DIR}/src/cli" ${@}
+exec "${NODE}" $NODE_OPTIONS "${DIR}/src/cli" ${@}
+
+/opt/kibana/bin/kibana
+
+
