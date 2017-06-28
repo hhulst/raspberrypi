@@ -5,6 +5,19 @@ https://www.elastic.co/downloads/kibana
 https://www.elastic.co/downloads/elasticsearch
 https://www.elastic.co/downloads/logstash
 
+Support matrix for Elasticsearch-Logstash-Filebeat-Kibana:
+https://www.elastic.co/support/matrix#show_compatibility
+
+I first tried to install the latest and greatest, with version 5.4.3.
+But I could not get it to work, because of node version in combination with the Kibana version, and some other problems.
+Therefore I went to Kibana 4.6.9, which needs a 2.x elasticsearch version.
+
+Used elastic stack versions used:
+- Kibana 4.6.9
+- Elasticsearch 2.4.5
+- Logstash 5.4.2
+- FileBeat 5.4.2
+
 
 Install on client side:
 
